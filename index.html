@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Sides — random team generator</title>
-<meta name="description" content="Paste a list of names, pick 2 to 6 teams, and draw random sides. Redraw until it looks right, then edit any name.">
+<meta name="description" content="Paste a list of names, pick 2 to 6 teams, and draw random sides. Redraw until it looks right, set each team's bib colour, edit names, and save a PDF team sheet.">
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#EFF1EE" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0E1315" media="(prefers-color-scheme: dark)">
@@ -25,12 +25,18 @@
   --line-strong:#C4CBC5;
   --ink:#12181A;
   --muted:#5A6664;
-  --solid:#12181A;      /* primary control ground */
+  --solid:#12181A;
   --solid-ink:#F4F6F3;
   --focus:#20558F;
-  --bib-ink:#FFFFFF;
-  --bib-1:#C24A1B; --bib-2:#20558F; --bib-3:#0F7A54;
-  --bib-4:#8A6508; --bib-5:#B32F4E; --bib-6:#5A43B0;
+
+  /* The seven bib colours, each with the ink that stays legible on it. */
+  --red:#C0202F;    --red-ink:#FFFFFF;
+  --orange:#C24A1B; --orange-ink:#FFFFFF;
+  --blue:#20558F;   --blue-ink:#FFFFFF;
+  --pink:#C0367B;   --pink-ink:#FFFFFF;
+  --black:#14191B;  --black-ink:#FFFFFF;
+  --white:#F1F3EF;  --white-ink:#12181A;
+  --green:#0F7A54;  --green-ink:#FFFFFF;
 
   --display:'Big Shoulders',ui-sans-serif,system-ui,sans-serif;
   --body:'Plex Sans',ui-sans-serif,system-ui,-apple-system,sans-serif;
@@ -46,9 +52,13 @@
     --ink:#E7ECE9; --muted:#93A19E;
     --solid:#E7ECE9; --solid-ink:#0E1315;
     --focus:#7FB0E8;
-    --bib-ink:#0E1315;
-    --bib-1:#E2703C; --bib-2:#4B8FD6; --bib-3:#2FA97C;
-    --bib-4:#C0921F; --bib-5:#DE5573; --bib-6:#8B76E0;
+    --red:#E05561;    --red-ink:#12181A;
+    --orange:#E2703C; --orange-ink:#12181A;
+    --blue:#4B8FD6;   --blue-ink:#12181A;
+    --pink:#E56BA8;   --pink-ink:#12181A;
+    --black:#0A0E0F;  --black-ink:#E7ECE9;
+    --white:#EDF0EC;  --white-ink:#12181A;
+    --green:#2FA97C;  --green-ink:#12181A;
   }
 }
 :root[data-theme="dark"]{
@@ -57,9 +67,13 @@
   --ink:#E7ECE9; --muted:#93A19E;
   --solid:#E7ECE9; --solid-ink:#0E1315;
   --focus:#7FB0E8;
-  --bib-ink:#0E1315;
-  --bib-1:#E2703C; --bib-2:#4B8FD6; --bib-3:#2FA97C;
-  --bib-4:#C0921F; --bib-5:#DE5573; --bib-6:#8B76E0;
+  --red:#E05561;    --red-ink:#12181A;
+  --orange:#E2703C; --orange-ink:#12181A;
+  --blue:#4B8FD6;   --blue-ink:#12181A;
+  --pink:#E56BA8;   --pink-ink:#12181A;
+  --black:#0A0E0F;  --black-ink:#E7ECE9;
+  --white:#EDF0EC;  --white-ink:#12181A;
+  --green:#2FA97C;  --green-ink:#12181A;
 }
 :root[data-theme="light"]{
   --ground:#EFF1EE; --panel:#FFFFFF; --sunk:#F5F7F4;
@@ -67,9 +81,13 @@
   --ink:#12181A; --muted:#5A6664;
   --solid:#12181A; --solid-ink:#F4F6F3;
   --focus:#20558F;
-  --bib-ink:#FFFFFF;
-  --bib-1:#C24A1B; --bib-2:#20558F; --bib-3:#0F7A54;
-  --bib-4:#8A6508; --bib-5:#B32F4E; --bib-6:#5A43B0;
+  --red:#C0202F;    --red-ink:#FFFFFF;
+  --orange:#C24A1B; --orange-ink:#FFFFFF;
+  --blue:#20558F;   --blue-ink:#FFFFFF;
+  --pink:#C0367B;   --pink-ink:#FFFFFF;
+  --black:#14191B;  --black-ink:#FFFFFF;
+  --white:#F1F3EF;  --white-ink:#12181A;
+  --green:#0F7A54;  --green-ink:#FFFFFF;
 }
 
 /* ── Base ──────────────────────────────────────────────────────────────── */
@@ -102,15 +120,11 @@ body.has-bar{padding-bottom:calc(96px + env(safe-area-inset-bottom))}
   margin:0;
   text-wrap:balance;
 }
-.tagline{
-  margin:10px 0 0;
-  color:var(--muted);
-  font-size:15px;
-  max-width:30ch;
-}
+.tagline{margin:10px 0 0;color:var(--muted);font-size:15px;max-width:30ch}
 .bibstrip{display:flex;gap:3px;height:7px;margin:14px 0 2px}
 .bibstrip span{
   flex:1;border-radius:2px;background:var(--seg);
+  box-shadow:inset 0 0 0 1px rgba(128,128,128,.28);
   transform-origin:left center;
   animation:seg .34s cubic-bezier(.2,.8,.3,1) backwards;
 }
@@ -127,13 +141,9 @@ body.has-bar{padding-bottom:calc(96px + env(safe-area-inset-bottom))}
 .cardhead{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
 .label{
   font-family:var(--mono);font-weight:500;font-size:11.5px;
-  letter-spacing:.14em;text-transform:uppercase;color:var(--muted);
-  margin:0;
+  letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:0;
 }
-.counter{
-  font-family:var(--mono);font-size:12px;color:var(--muted);
-  font-variant-numeric:tabular-nums;
-}
+.counter{font-family:var(--mono);font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
 
 textarea#roster{
   width:100%;
@@ -159,6 +169,7 @@ textarea#roster:focus{outline:none;border-color:var(--line-strong);box-shadow:0 
   text-underline-offset:4px;text-decoration-color:var(--line-strong);
 }
 .ghost:hover{color:var(--ink);text-decoration-color:currentColor}
+.ghost.armed{color:var(--red);text-decoration-color:currentColor;font-weight:600}
 
 /* ── Segmented team count ──────────────────────────────────────────────── */
 .segmented{
@@ -184,7 +195,6 @@ textarea#roster:focus{outline:none;border-color:var(--line-strong);box-shadow:0 
   font-family:var(--display);font-weight:800;text-transform:uppercase;
   font-size:26px;letter-spacing:.02em;line-height:1;
   padding:19px 0 16px;border-radius:12px;
-  display:flex;flex-direction:column;align-items:center;gap:0;
   transition:transform .12s ease,opacity .16s;
 }
 .primary:active{transform:scale(.985)}
@@ -206,30 +216,60 @@ body.has-bar .primary{display:none}
   border:1px solid var(--line);
   border-radius:var(--r);
   overflow:hidden;
-  animation:rise .4s cubic-bezier(.2,.8,.3,1) backwards;
 }
+.team.deal{animation:rise .4s cubic-bezier(.2,.8,.3,1) backwards}
 @keyframes rise{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:none}}
 
 .team-head{
   background:var(--bib);
-  display:flex;align-items:center;gap:10px;
-  padding:9px 12px 8px;
+  display:flex;align-items:center;gap:8px;
+  padding:7px 10px;
+  /* Keeps a white or black band separated from the panel behind it. */
+  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--bib-ink) 20%,transparent);
 }
+.bib-btn{
+  flex:none;width:36px;height:36px;border:0;cursor:pointer;
+  display:grid;place-items:center;border-radius:50%;
+  background:color-mix(in srgb,var(--bib-ink) 13%,transparent);
+  color:var(--bib-ink);
+  transition:background .16s;
+}
+.bib-btn:hover{background:color-mix(in srgb,var(--bib-ink) 22%,transparent)}
+.bib-btn[aria-expanded="true"]{background:color-mix(in srgb,var(--bib-ink) 28%,transparent)}
+.bib-btn svg{width:21px;height:21px;fill:currentColor;display:block}
 .team-name{
   flex:1;min-width:0;
   appearance:none;background:transparent;border:0;padding:2px 4px;
   font-family:var(--display);font-weight:800;font-size:25px;line-height:1.05;
   text-transform:uppercase;letter-spacing:.005em;
-  color:var(--bib-ink);
-  border-radius:5px;
+  color:var(--bib-ink);border-radius:5px;
 }
 .team-name::placeholder{color:var(--bib-ink);opacity:.72}
 .team-name:focus{outline:none;background:color-mix(in srgb,var(--bib-ink) 17%,transparent)}
 .tally{
   flex:none;font-family:var(--mono);font-size:13px;font-weight:500;
   color:var(--bib-ink);opacity:.9;font-variant-numeric:tabular-nums;
-  letter-spacing:.06em;
+  letter-spacing:.06em;padding-right:2px;
 }
+
+/* ── Bib colour picker ─────────────────────────────────────────────────── */
+.palette{
+  display:flex;gap:8px;flex-wrap:wrap;
+  padding:11px 10px;background:var(--sunk);
+  border-bottom:1px solid var(--line);
+}
+.palette[hidden]{display:none}
+.swatch{
+  width:38px;height:38px;border-radius:50%;cursor:pointer;padding:0;
+  border:1px solid color-mix(in srgb,var(--ink) 22%,transparent);
+  background:var(--sw);
+  display:grid;place-items:center;
+  transition:transform .14s ease;
+}
+.swatch:active{transform:scale(.92)}
+.swatch[aria-checked="true"]{box-shadow:0 0 0 2px var(--panel),0 0 0 4px var(--ink)}
+.swatch svg{width:17px;height:17px;fill:var(--sw-ink);display:none}
+.swatch[aria-checked="true"] svg{display:block}
 
 .members{list-style:none;margin:0;padding:0}
 .members li + li{border-top:1px solid var(--line)}
@@ -239,34 +279,30 @@ body.has-bar .primary{display:none}
   padding:11px 13px;border-radius:0;
 }
 .member:focus{outline:none;background:var(--sunk);box-shadow:inset 3px 0 0 var(--bib)}
-.empty{
-  padding:12px 13px;color:var(--muted);font-size:14px;font-style:italic;
-}
+.empty{padding:12px 13px;color:var(--muted);font-size:14px;font-style:italic}
 
-.hint{
-  margin:2px 0 0;font-size:13px;color:var(--muted);text-align:center;
-}
+.hint{margin:2px 0 0;font-size:13px;color:var(--muted);text-align:center}
 
 /* ── Sticky bar ────────────────────────────────────────────────────────── */
 .actionbar{
   position:fixed;left:0;right:0;bottom:0;
-  display:none;gap:8px;
+  display:none;
   padding:10px max(16px,env(safe-area-inset-left)) calc(10px + env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-right));
   background:color-mix(in srgb,var(--ground) 88%,transparent);
   backdrop-filter:blur(12px);
   border-top:1px solid var(--line);
 }
-body.has-bar .actionbar{display:flex}
-.actionbar .inner{max-width:36rem;margin:0 auto;display:flex;gap:8px;width:100%}
+body.has-bar .actionbar{display:block}
+.actionbar .inner{max-width:36rem;margin:0 auto;display:flex;gap:7px;width:100%}
 .bar-btn{
-  appearance:none;cursor:pointer;flex:1;
+  appearance:none;cursor:pointer;
   font-family:var(--display);font-weight:800;text-transform:uppercase;
-  font-size:21px;line-height:1;padding:15px 0 13px;border-radius:11px;
+  line-height:1;padding:15px 0 13px;border-radius:11px;
   transition:transform .12s ease;
 }
 .bar-btn:active{transform:scale(.98)}
-.bar-btn.solid{background:var(--solid);color:var(--solid-ink);border:0;flex:1.6}
-.bar-btn.outline{background:transparent;color:var(--ink);border:1px solid var(--line-strong)}
+.bar-btn.solid{background:var(--solid);color:var(--solid-ink);border:0;flex:1.5;font-size:21px}
+.bar-btn.outline{background:transparent;color:var(--ink);border:1px solid var(--line-strong);flex:1;font-size:18px}
 
 .foot{
   text-align:center;font-family:var(--mono);font-size:11px;
@@ -276,6 +312,20 @@ body.has-bar .actionbar{display:flex}
 
 @media (prefers-reduced-motion:reduce){
   *{animation-duration:.001ms !important;animation-delay:0ms !important;transition-duration:.001ms !important}
+}
+
+/* ── Printing straight from the browser (the PDF button is the main route) */
+@page{margin:14mm}
+@media print{
+  body{background:#fff;color:#000;padding:0}
+  body.has-bar{padding-bottom:0}
+  .card,.actionbar,.primary,.note,.hint,.foot,.tagline,.bibstrip,.palette,.bib-btn{display:none !important}
+  .wordmark{font-size:30px;margin-bottom:10px}
+  .results{grid-template-columns:1fr 1fr;gap:9px}
+  .team{break-inside:avoid;border:1px solid #B9BFBA;border-radius:6px}
+  .team-head{-webkit-print-color-adjust:exact;print-color-adjust:exact;padding:5px 8px}
+  .team-name{font-size:19px}
+  .member{padding:5px 9px;font-size:12px}
 }
 </style>
 </head>
@@ -313,7 +363,7 @@ body.has-bar .actionbar{display:flex}
   <p class="note" id="note"></p>
 
   <section class="results" id="results" aria-live="polite"></section>
-  <p class="hint" id="hint" hidden>Tap any name to fix it. Clear a name to drop that person.</p>
+  <p class="hint" id="hint" hidden>Tap the bib to change a team's colour, or any name to edit it. Clear a name to drop that person.</p>
 
   <p class="foot">Nothing leaves this device</p>
 </div>
@@ -321,6 +371,7 @@ body.has-bar .actionbar{display:flex}
 <div class="actionbar" id="actionbar">
   <div class="inner">
     <button type="button" class="bar-btn outline" id="copy">Copy</button>
+    <button type="button" class="bar-btn outline" id="pdf">PDF</button>
     <button type="button" class="bar-btn solid" id="redraw">Draw again</button>
   </div>
 </div>
@@ -329,12 +380,39 @@ body.has-bar .actionbar{display:flex}
 (function(){
   "use strict";
 
-  var KEY = "sides.v1";
+  var KEY = "sides.v2";
   var MAX_TEAMS = 6;
   var SAMPLE = ["Ada","Mateo","Priya","Jonas","Leila","Tom","Ines","Kwame","Sofia","Nils","Rae","Hugo"];
 
+  /* The bibs you actually own, in the order they appear in the picker. */
+  var BIBS = [
+    { key:"red",    label:"Red"    },
+    { key:"orange", label:"Orange" },
+    { key:"blue",   label:"Blue"   },
+    { key:"pink",   label:"Pink"   },
+    { key:"black",  label:"Black"  },
+    { key:"white",  label:"White"  },
+    { key:"green",  label:"Green"  }
+  ];
+  var DEFAULT_COLORS = ["red","blue","green","orange","pink","black"];
+
+  /* Ink on paper: the light-theme band colours, which read correctly on white. */
+  var PRINT = {
+    red:   ["#C0202F","#FFFFFF"], orange:["#C24A1B","#FFFFFF"],
+    blue:  ["#20558F","#FFFFFF"], pink:  ["#C0367B","#FFFFFF"],
+    black: ["#14191B","#FFFFFF"], white: ["#FFFFFF","#12181A"],
+    green: ["#0F7A54","#FFFFFF"]
+  };
+
+  var JERSEY = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.1 2.4 4.3 4.5a1.1 1.1 0 0 0-.6.7L2.3 9.9a.6.6 0 0 0 .43.73l2.06.55-.35 9.2a.6.6 0 0 0 .6.62h13.92a.6.6 0 0 0 .6-.62l-.35-9.2 2.06-.55a.6.6 0 0 0 .43-.73l-1.4-4.7a1.1 1.1 0 0 0-.6-.7L14.9 2.4a3.05 3.05 0 0 1-5.8 0Z"/></svg>';
+  var TICK   = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.6 17.4 4.2 12l1.7-1.7 3.7 3.7 8.5-8.5L19.8 7.2z"/></svg>';
+
   var uid = 1;
-  var state = { people: [], teamCount: 2, teams: null };
+  var state = { people: [], teamCount: 2, slots: defaultSlots(), teams: null };
+
+  function defaultSlots(){
+    return DEFAULT_COLORS.map(function(c){ return { name: "", color: c }; });
+  }
 
   var el = {
     roster:    document.getElementById("roster"),
@@ -346,8 +424,8 @@ body.has-bar .actionbar{display:flex}
     note:      document.getElementById("note"),
     results:   document.getElementById("results"),
     hint:      document.getElementById("hint"),
-    bar:       document.getElementById("actionbar"),
     copy:      document.getElementById("copy"),
+    pdf:       document.getElementById("pdf"),
     redraw:    document.getElementById("redraw"),
     sample:    document.getElementById("sample"),
     clear:     document.getElementById("clear")
@@ -376,24 +454,38 @@ body.has-bar .actionbar{display:flex}
   }
   function load(){
     var raw;
-    try { raw = localStorage.getItem(KEY); } catch (e) { return; }
+    try { raw = localStorage.getItem(KEY) || localStorage.getItem("sides.v1"); } catch (e) { return; }
     if (!raw) return;
     try {
       var s = JSON.parse(raw);
       if (!s || !Array.isArray(s.people)) return;
+
       state.people = s.people
         .filter(function(p){ return p && typeof p.name === "string"; })
         .map(function(p){ return { id: Number(p.id) || uid++, name: p.name }; });
       state.people.forEach(function(p){ if (p.id >= uid) uid = p.id + 1; });
+
       state.teamCount = Math.min(MAX_TEAMS, Math.max(2, Number(s.teamCount) || 2));
+
+      var valid = {};
+      BIBS.forEach(function(b){ valid[b.key] = true; });
+      state.slots = defaultSlots().map(function(slot, i){
+        var saved = Array.isArray(s.slots) ? s.slots[i] : null;
+        // v1 kept the team name on the team itself and had no colours.
+        var legacy = !saved && Array.isArray(s.teams) ? s.teams[i] : null;
+        return {
+          name: (saved && typeof saved.name === "string") ? saved.name
+              : (legacy && typeof legacy.name === "string") ? legacy.name : "",
+          color: (saved && valid[saved.color]) ? saved.color : slot.color
+        };
+      });
+
       if (Array.isArray(s.teams) && s.teams.length) {
         var live = {};
         state.people.forEach(function(p){ live[p.id] = true; });
         state.teams = s.teams.map(function(t){
-          return {
-            name: typeof t.name === "string" ? t.name : "",
-            memberIds: (Array.isArray(t.memberIds) ? t.memberIds : []).filter(function(id){ return live[id]; })
-          };
+          return { memberIds: (Array.isArray(t.memberIds) ? t.memberIds : [])
+            .filter(function(id){ return live[id]; }) };
         });
       }
     } catch (e) {}
@@ -446,6 +538,9 @@ body.has-bar .actionbar{display:flex}
     }
     return null;
   }
+  function teamTitle(i){
+    return (state.slots[i].name || "").trim() || ("Team " + (i + 1));
+  }
 
   /* ── Drawing ─────────────────────────────────────────────────────────── */
   function signature(teams){
@@ -465,7 +560,7 @@ body.has-bar .actionbar{display:flex}
   }
 
   function drawTeams(){
-    if (state.people.length < 2) return;
+    if (state.people.length < 2) return false;
 
     var previous = signature(state.teams && state.teams.length === state.teamCount ? state.teams : null);
     var buckets = deal();
@@ -475,24 +570,25 @@ body.has-bar .actionbar{display:flex}
       buckets = deal();
     }
 
-    var kept = state.teams || [];
-    state.teams = buckets.map(function(memberIds, i){
-      return { name: (kept[i] && kept[i].name) || "", memberIds: memberIds };
-    });
-
+    state.teams = buckets.map(function(memberIds){ return { memberIds: memberIds }; });
     save();
-    renderAll();
+    renderAll(true);
     if (navigator.vibrate) { try { navigator.vibrate(12); } catch (e) {} }
     return true;
   }
 
   /* ── Rendering ───────────────────────────────────────────────────────── */
   function plural(n, one, many){ return n + " " + (n === 1 ? one : many); }
+  function esc(s){
+    return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;")
+                    .replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+  }
 
-  function renderStrip(){
+  function renderStrip(animate){
     var html = "";
-    for (var i = 1; i <= state.teamCount; i++){
-      html += '<span style="--seg:var(--bib-' + i + ');animation-delay:' + ((i - 1) * 35) + 'ms"></span>';
+    for (var i = 0; i < state.teamCount; i++){
+      html += '<span style="--seg:var(--' + state.slots[i].color + ')' +
+              (animate ? ';animation-delay:' + (i * 35) + 'ms' : ';animation:none') + '"></span>';
     }
     el.strip.innerHTML = html;
   }
@@ -519,8 +615,7 @@ body.has-bar .actionbar{display:flex}
       el.sizeHint.textContent = rem ? base + "–" + (base + 1) + " each" : base + " each";
     }
 
-    var ready = total >= 2;
-    el.draw.disabled = !ready;
+    el.draw.disabled = total < 2;
     el.draw.textContent = state.teams ? "Draw again" : "Draw the teams";
 
     if (total === 0)      el.note.textContent = "Add some names to get started.";
@@ -529,12 +624,7 @@ body.has-bar .actionbar{display:flex}
     else                  el.note.textContent = "";
   }
 
-  function esc(s){
-    return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;")
-                    .replace(/>/g,"&gt;").replace(/"/g,"&quot;");
-  }
-
-  function renderResults(){
+  function renderResults(animate){
     if (!state.teams){
       el.results.innerHTML = "";
       el.hint.hidden = true;
@@ -543,7 +633,14 @@ body.has-bar .actionbar{display:flex}
     }
     var html = "";
     state.teams.forEach(function(team, i){
-      var bib = (i % MAX_TEAMS) + 1;
+      var slot = state.slots[i];
+
+      var swatches = BIBS.map(function(b){
+        return '<button type="button" class="swatch" role="radio" data-team="' + i + '" data-color="' + b.key + '"' +
+               ' aria-checked="' + (b.key === slot.color) + '" aria-label="' + b.label + ' bibs"' +
+               ' style="--sw:var(--' + b.key + ');--sw-ink:var(--' + b.key + '-ink)">' + TICK + '</button>';
+      }).join("");
+
       var rows = team.memberIds.map(function(id){
         var p = personById(id);
         if (!p) return "";
@@ -552,13 +649,18 @@ body.has-bar .actionbar{display:flex}
       }).join("");
       if (!rows) rows = '<li class="empty">Nobody here yet</li>';
 
-      html += '<article class="team" style="--bib:var(--bib-' + bib + ');animation-delay:' + (i * 45) + 'ms">' +
+      html += '<article class="team' + (animate ? ' deal' : '') + '" data-index="' + i + '"' +
+                ' style="--bib:var(--' + slot.color + ');--bib-ink:var(--' + slot.color + '-ink)' +
+                (animate ? ';animation-delay:' + (i * 45) + 'ms' : '') + '">' +
                 '<div class="team-head">' +
-                  '<input class="team-name" type="text" data-team="' + i + '" value="' + esc(team.name) +
+                  '<button type="button" class="bib-btn" data-team="' + i + '" aria-expanded="false"' +
+                    ' aria-label="Change the bib colour for ' + esc(teamTitle(i)) + '">' + JERSEY + '</button>' +
+                  '<input class="team-name" type="text" data-team="' + i + '" value="' + esc(slot.name) +
                     '" placeholder="Team ' + (i + 1) + '" spellcheck="false" autocomplete="off"' +
                     ' aria-label="Name for team ' + (i + 1) + '">' +
                   '<span class="tally">' + team.memberIds.length + '</span>' +
                 '</div>' +
+                '<div class="palette" role="radiogroup" aria-label="Bib colour" hidden>' + swatches + '</div>' +
                 '<ul class="members">' + rows + '</ul>' +
               '</article>';
     });
@@ -578,28 +680,28 @@ body.has-bar .actionbar{display:flex}
     el.roster.style.height = Math.min(el.roster.scrollHeight + 2, window.innerHeight * 0.48) + "px";
   }
 
-  function renderAll(){
-    renderStrip();
+  function renderAll(animate){
+    renderStrip(animate);
     renderSegmented();
     renderMeta();
-    renderResults();
+    renderResults(animate);
     renderRosterText();
   }
 
   /* ── Events ──────────────────────────────────────────────────────────── */
   el.roster.addEventListener("input", function(){
+    disarmClear();
     parseRoster(el.roster.value);
     reconcileTeams();
     autoGrow();
     renderMeta();
-    renderResults();
+    renderResults(false);
     save();
   });
 
   el.segmented.addEventListener("click", function(e){
     var btn = e.target.closest(".seg");
-    if (!btn) return;
-    setTeamCount(Number(btn.dataset.n));
+    if (btn) setTeamCount(Number(btn.dataset.n));
   });
 
   el.segmented.addEventListener("keydown", function(e){
@@ -621,7 +723,46 @@ body.has-bar .actionbar{display:flex}
     // The old split no longer matches the requested number of teams.
     if (state.teams && state.teams.length !== n) state.teams = null;
     save();
-    renderAll();
+    renderAll(false);
+  }
+
+  el.results.addEventListener("click", function(e){
+    var swatch = e.target.closest(".swatch");
+    if (swatch) { setColor(Number(swatch.dataset.team), swatch.dataset.color); return; }
+    var toggle = e.target.closest(".bib-btn");
+    if (toggle) togglePalette(Number(toggle.dataset.team));
+  });
+
+  function togglePalette(index){
+    var card = el.results.querySelector('.team[data-index="' + index + '"]');
+    if (!card) return;
+    var open = card.querySelector(".palette").hidden;
+    // Only one picker open at a time.
+    el.results.querySelectorAll(".team").forEach(function(other){
+      other.querySelector(".palette").hidden = true;
+      other.querySelector(".bib-btn").setAttribute("aria-expanded", "false");
+    });
+    if (open){
+      card.querySelector(".palette").hidden = false;
+      card.querySelector(".bib-btn").setAttribute("aria-expanded", "true");
+    }
+  }
+
+  // Applied in place so the results don't re-deal or replay their animation.
+  function setColor(index, color){
+    state.slots[index].color = color;
+    save();
+    var card = el.results.querySelector('.team[data-index="' + index + '"]');
+    if (card){
+      card.style.setProperty("--bib", "var(--" + color + ")");
+      card.style.setProperty("--bib-ink", "var(--" + color + "-ink)");
+      card.querySelectorAll(".swatch").forEach(function(s){
+        s.setAttribute("aria-checked", String(s.dataset.color === color));
+      });
+      card.querySelector(".palette").hidden = true;
+      card.querySelector(".bib-btn").setAttribute("aria-expanded", "false");
+    }
+    renderStrip(false);
   }
 
   // Editing a name in a team edits the roster too — same person, one record.
@@ -631,8 +772,8 @@ body.has-bar .actionbar{display:flex}
       var p = personById(Number(t.dataset.id));
       if (p){ p.name = t.value; renderRosterText(); renderMeta(); save(); }
     } else if (t.classList.contains("team-name")){
-      var team = state.teams[Number(t.dataset.team)];
-      if (team){ team.name = t.value; save(); }
+      state.slots[Number(t.dataset.team)].name = t.value;
+      save();
     }
   });
 
@@ -652,10 +793,11 @@ body.has-bar .actionbar{display:flex}
     });
     if (!state.people.length) state.teams = null;
     save();
-    renderAll();
+    renderAll(false);
   });
 
   el.draw.addEventListener("click", function(){
+    disarmClear();
     if (drawTeams() && el.results.firstChild){
       el.results.scrollIntoView({ behavior: "smooth", block: "start" });
     }
@@ -663,6 +805,7 @@ body.has-bar .actionbar{display:flex}
   el.redraw.addEventListener("click", function(){ drawTeams(); });
 
   el.sample.addEventListener("click", function(){
+    disarmClear();
     var existing = state.people.map(function(p){ return p.name; });
     el.roster.value = existing.concat(SAMPLE.filter(function(n){
       return existing.indexOf(n) === -1;
@@ -670,42 +813,60 @@ body.has-bar .actionbar{display:flex}
     parseRoster(el.roster.value);
     reconcileTeams();
     save();
-    renderAll();
+    renderAll(false);
   });
 
+  /* Clear needs two taps rather than a confirm() dialog: browsers block modals
+     in sandboxed frames, which silently swallowed the first tap. */
+  var clearTimer = null;
+  function disarmClear(){
+    if (clearTimer){ clearTimeout(clearTimer); clearTimer = null; }
+    el.clear.classList.remove("armed");
+    el.clear.textContent = "Clear all";
+  }
   el.clear.addEventListener("click", function(){
-    if (state.people.length && !confirm("Clear the roster and the current draw?")) return;
+    if (!state.people.length && !state.teams){ disarmClear(); return; }
+    if (!clearTimer){
+      el.clear.classList.add("armed");
+      el.clear.textContent = "Tap again to clear";
+      clearTimer = setTimeout(disarmClear, 4000);
+      return;
+    }
+    disarmClear();
     state.people = [];
     state.teams = null;
+    state.slots = defaultSlots();
     el.roster.value = "";
     save();
-    renderAll();
+    renderAll(false);
     el.roster.focus();
   });
 
   el.copy.addEventListener("click", function(){
     if (!state.teams) return;
-    var lines = state.teams.map(function(team, i){
-      var head = (team.name.trim() || "Team " + (i + 1)) + " (" + team.memberIds.length + ")";
+    var text = state.teams.map(function(team, i){
+      var head = teamTitle(i) + " (" + team.memberIds.length + ")";
       var body = team.memberIds.map(function(id){
         var p = personById(id);
         return p ? p.name : "";
       }).filter(Boolean).join("\n");
       return body ? head + "\n" + body : head;
-    });
-    var text = lines.join("\n\n");
+    }).join("\n\n");
 
-    var done = function(){
-      var label = el.copy.textContent;
-      el.copy.textContent = "Copied";
-      setTimeout(function(){ el.copy.textContent = label; }, 1400);
-    };
+    var done = function(){ flash(el.copy, "Copied"); };
     if (navigator.clipboard && navigator.clipboard.writeText){
       navigator.clipboard.writeText(text).then(done, function(){ legacyCopy(text, done); });
     } else {
       legacyCopy(text, done);
     }
   });
+
+  function flash(button, message){
+    var original = button.dataset.label || button.textContent;
+    button.dataset.label = original;
+    button.textContent = message;
+    setTimeout(function(){ button.textContent = button.dataset.label; }, 1500);
+  }
 
   function legacyCopy(text, done){
     var ta = document.createElement("textarea");
@@ -717,13 +878,222 @@ body.has-bar .actionbar{display:flex}
     var ok = false;
     try { ok = document.execCommand("copy"); } catch (e) {}
     document.body.removeChild(ta);
-    if (ok) done(); else el.copy.textContent = "Press and hold to copy";
+    if (ok) done(); else flash(el.copy, "Copy failed");
   }
+
+  /* ── PDF team sheet ──────────────────────────────────────────────────── */
+  /* Written by hand rather than printed, so the sheet looks the same on every
+     phone and doesn't depend on a print dialog. Base-14 Helvetica, WinAnsi. */
+
+  var WIN = {0x2018:145,0x2019:146,0x201C:147,0x201D:148,0x2013:150,0x2014:151,
+             0x2022:149,0x20AC:128,0x2026:133};
+
+  function pdfText(s){
+    var out = "";
+    for (var i = 0; i < s.length; i++){
+      var c = s.charCodeAt(i), b;
+      if (c >= 32 && c <= 126) b = c;
+      else if (c >= 160 && c <= 255) b = c;
+      else b = WIN[c] || 63; // anything else becomes "?"
+      var ch = String.fromCharCode(b);
+      if (ch === "(" || ch === ")" || ch === "\\") out += "\\" + ch;
+      else if (b < 32 || b > 126) out += "\\" + ("00" + b.toString(8)).slice(-3);
+      else out += ch;
+    }
+    return out;
+  }
+
+  // Helvetica metrics, approximated per character class — accurate enough to
+  // decide where a name has to be trimmed.
+  function textWidth(s, size, bold){
+    var w = 0;
+    for (var i = 0; i < s.length; i++){
+      var ch = s.charAt(i);
+      if ("iIl|.,;:'!ijft()[]".indexOf(ch) >= 0) w += 0.31;
+      else if ("mwMW@".indexOf(ch) >= 0) w += 0.87;
+      else if (ch >= "A" && ch <= "Z") w += 0.69;
+      else if (ch === " ") w += 0.28;
+      else w += 0.55;
+    }
+    return w * size * (bold ? 1.05 : 1);
+  }
+  function fitText(s, maxWidth, size, bold){
+    if (textWidth(s, size, bold) <= maxWidth) return s;
+    var t = s;
+    while (t.length > 1 && textWidth(t + "…", size, bold) > maxWidth) t = t.slice(0, -1);
+    return t.replace(/\s+$/, "") + "…";
+  }
+  function pdfRgb(hex){
+    return [1,3,5].map(function(i){
+      return (parseInt(hex.substr(i, 2), 16) / 255).toFixed(3);
+    }).join(" ");
+  }
+
+  function buildPdf(){
+    var PW = 595.28, PH = 841.89, M = 44, GUT = 20;
+    var HEADH = 25, ROWH = 18, BLOCKGAP = 16, FLOOR = 62;
+
+    // A short sheet reads better as one full-width column than as a half-empty
+    // pair, so only split into columns when the teams can't fit in one.
+    var stackHeight = state.teams.reduce(function(sum, team){
+      return sum + HEADH + Math.max(1, team.memberIds.length) * ROWH + BLOCKGAP;
+    }, -BLOCKGAP);
+    var COLS = stackHeight <= (PH - M - 62) - FLOOR ? 1 : 2;
+    var COLW = COLS === 1 ? PW - 2 * M : (PW - 2 * M - GUT) / 2;
+
+    var pages = [], page = null, col = 0, y = 0, pageTop = 0;
+
+    function startPage(first){
+      page = []; pages.push(page); col = 0;
+      y = PH - M;
+      if (first){
+        page.push("BT /F2 25 Tf 0.07 0.09 0.10 rg " + M + " " + (y - 21).toFixed(2) + " Td (SIDES) Tj ET");
+        var sub = state.teamCount + (state.teamCount === 1 ? " team" : " teams") + "  ·  " +
+                  plural(state.people.length, "person", "people") + "  ·  " +
+                  new Date().toLocaleDateString(undefined, { day:"numeric", month:"long", year:"numeric" });
+        page.push("BT /F1 9.5 Tf 0.42 0.45 0.44 rg " + M + " " + (y - 37).toFixed(2) +
+                  " Td (" + pdfText(sub) + ") Tj ET");
+        page.push("0.78 0.80 0.79 RG 0.7 w " + M + " " + (y - 47).toFixed(2) + " m " +
+                  (PW - M) + " " + (y - 47).toFixed(2) + " l S");
+        y -= 62;
+      }
+      pageTop = y;
+    }
+    function colX(){ return M + col * (COLW + GUT); }
+    function nextColumn(){
+      if (col < COLS - 1){ col++; y = pageTop; } else { startPage(false); }
+    }
+
+    startPage(true);
+
+    state.teams.forEach(function(team, i){
+      var slot  = state.slots[i];
+      var paint = PRINT[slot.color] || PRINT.red;
+      var band  = pdfRgb(paint[0]), bandInk = pdfRgb(paint[1]);
+      var title = teamTitle(i);
+      var names = team.memberIds.map(function(id){
+        var p = personById(id);
+        return p ? p.name : null;
+      }).filter(Boolean);
+
+      var placed = 0, cont = false;
+      do {
+        if (y - HEADH - ROWH < FLOOR) nextColumn();
+        var x = colX();
+
+        page.push(band + " rg " + x.toFixed(2) + " " + (y - HEADH).toFixed(2) + " " +
+                  COLW.toFixed(2) + " " + HEADH + " re f");
+        if (slot.color === "white"){
+          page.push("0.72 0.74 0.73 RG 0.7 w " + x.toFixed(2) + " " + (y - HEADH).toFixed(2) + " " +
+                    COLW.toFixed(2) + " " + HEADH + " re S");
+        }
+
+        var tally = String(names.length);
+        var label = fitText(title + (cont ? " (cont.)" : ""),
+                            COLW - 26 - textWidth(tally, 11, false), 12.5, true);
+        page.push("BT /F2 12.5 Tf " + bandInk + " rg " + (x + 9).toFixed(2) + " " +
+                  (y - 17).toFixed(2) + " Td (" + pdfText(label) + ") Tj ET");
+        page.push("BT /F1 11 Tf " + bandInk + " rg " +
+                  (x + COLW - 9 - textWidth(tally, 11, false)).toFixed(2) + " " +
+                  (y - 17).toFixed(2) + " Td (" + pdfText(tally) + ") Tj ET");
+        y -= HEADH;
+
+        if (!names.length){
+          page.push("BT /F1 10.5 Tf 0.55 0.58 0.57 rg " + (x + 9).toFixed(2) + " " +
+                    (y - 12.5).toFixed(2) + " Td (Nobody here yet) Tj ET");
+          y -= ROWH;
+        }
+
+        var startedAt = placed;
+        while (placed < names.length && y - ROWH >= FLOOR){
+          if (placed > startedAt || startedAt > 0){
+            page.push("0.87 0.89 0.88 RG 0.6 w " + x.toFixed(2) + " " + y.toFixed(2) + " m " +
+                      (x + COLW).toFixed(2) + " " + y.toFixed(2) + " l S");
+          }
+          page.push("BT /F1 10.5 Tf 0.07 0.09 0.10 rg " + (x + 9).toFixed(2) + " " +
+                    (y - 12.5).toFixed(2) + " Td (" +
+                    pdfText(fitText(names[placed], COLW - 18, 10.5, false)) + ") Tj ET");
+          y -= ROWH;
+          placed++;
+        }
+
+        cont = placed < names.length;
+        if (cont) nextColumn();
+      } while (cont);
+
+      y -= BLOCKGAP;
+    });
+
+    pages.forEach(function(p, i){
+      var stamp = "Sides  ·  page " + (i + 1) + " of " + pages.length;
+      p.push("BT /F1 8.5 Tf 0.55 0.58 0.57 rg " + M + " 38 Td (" + pdfText(stamp) + ") Tj ET");
+    });
+
+    /* Assemble the file. Every byte stays below 0x100 so string offsets are
+       byte offsets, which is what the xref table needs. */
+    var objects = [];
+    function addObject(body){ objects.push(body); return objects.length; }
+
+    var catalogId = addObject(null);          // 1, filled in once pages exist
+    var pagesId   = addObject(null);          // 2
+    var fontId    = addObject("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>");
+    var boldId    = addObject("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>");
+
+    var pageIds = pages.map(function(ops){
+      var stream = ops.join("\n");
+      var streamId = addObject("<< /Length " + stream.length + " >>\nstream\n" + stream + "\nendstream");
+      return addObject(
+        "<< /Type /Page /Parent " + pagesId + " 0 R /MediaBox [0 0 " + PW + " " + PH + "]" +
+        " /Resources << /Font << /F1 " + fontId + " 0 R /F2 " + boldId + " 0 R >> >>" +
+        " /Contents " + streamId + " 0 R >>");
+    });
+
+    objects[catalogId - 1] = "<< /Type /Catalog /Pages " + pagesId + " 0 R >>";
+    objects[pagesId - 1] = "<< /Type /Pages /Count " + pageIds.length + " /Kids [" +
+      pageIds.map(function(id){ return id + " 0 R"; }).join(" ") + "] >>";
+
+    var out = "%PDF-1.4\n", offsets = [];
+    objects.forEach(function(body, i){
+      offsets.push(out.length);
+      out += (i + 1) + " 0 obj\n" + body + "\nendobj\n";
+    });
+    var xref = out.length;
+    out += "xref\n0 " + (objects.length + 1) + "\n0000000000 65535 f \n";
+    offsets.forEach(function(o){ out += ("0000000000" + o).slice(-10) + " 00000 n \n"; });
+    out += "trailer\n<< /Size " + (objects.length + 1) + " /Root " + catalogId + " 0 R >>\n" +
+           "startxref\n" + xref + "\n%%EOF\n";
+
+    var bytes = new Uint8Array(out.length);
+    for (var i = 0; i < out.length; i++) bytes[i] = out.charCodeAt(i) & 0xFF;
+    return bytes;
+  }
+
+  el.pdf.addEventListener("click", function(){
+    if (!state.teams) return;
+    var url;
+    try {
+      var blob = new Blob([buildPdf()], { type: "application/pdf" });
+      url = URL.createObjectURL(blob);
+      var a = document.createElement("a");
+      a.href = url;
+      a.download = "sides-teams.pdf";
+      a.rel = "noopener";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      flash(el.pdf, "Saved");
+      setTimeout(function(){ URL.revokeObjectURL(url); }, 8000);
+    } catch (e) {
+      if (url) URL.revokeObjectURL(url);
+      // Downloads blocked (some embedded frames): fall back to the print dialog.
+      try { window.print(); } catch (e2) { flash(el.pdf, "Blocked"); }
+    }
+  });
 
   window.addEventListener("resize", autoGrow);
 
   load();
-  renderAll();
+  renderAll(false);
 })();
 </script>
 </body>
