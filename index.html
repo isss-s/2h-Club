@@ -199,8 +199,18 @@ textarea#roster:focus{outline:none;border-color:var(--line-strong);box-shadow:0 
 }
 .primary:active{transform:scale(.985)}
 .primary:disabled{opacity:.38;cursor:not-allowed}
+.secondary{
+  appearance:none;cursor:pointer;width:100%;
+  background:transparent;color:var(--ink);
+  border:1px solid var(--line-strong);
+  font-family:var(--display);font-weight:800;text-transform:uppercase;
+  font-size:21px;letter-spacing:.02em;line-height:1;
+  padding:16px 0 13px;border-radius:12px;margin-top:-8px;
+  transition:transform .12s ease;
+}
+.secondary:active{transform:scale(.985)}
 /* Once results exist the sticky bar owns the draw action — no double button. */
-body.has-bar .primary{display:none}
+body.has-bar .primary,body.has-bar .secondary{display:none}
 .note{
   margin:-8px 0 0;font-size:13.5px;color:var(--muted);
   font-family:var(--mono);font-variant-numeric:tabular-nums;
@@ -279,7 +289,12 @@ body.has-bar .primary{display:none}
   padding:11px 13px;border-radius:0;
 }
 .member:focus{outline:none;background:var(--sunk);box-shadow:inset 3px 0 0 var(--bib)}
-.empty{padding:12px 13px;color:var(--muted);font-size:14px;font-style:italic}
+.add{
+  appearance:none;background:transparent;border:0;cursor:pointer;width:100%;
+  text-align:left;padding:12px 13px;
+  font-family:var(--body);font-size:15px;font-weight:500;color:var(--muted);
+}
+.add:hover{color:var(--ink);background:var(--sunk)}
 
 .hint{margin:2px 0 0;font-size:13px;color:var(--muted);text-align:center}
 
@@ -319,7 +334,8 @@ body.has-bar .actionbar{display:block}
 @media print{
   body{background:#fff;color:#000;padding:0}
   body.has-bar{padding-bottom:0}
-  .card,.actionbar,.primary,.note,.hint,.foot,.tagline,.bibstrip,.palette,.bib-btn{display:none !important}
+  .card,.actionbar,.primary,.secondary,.note,.hint,.foot,.tagline,.bibstrip,.palette,
+  .bib-btn,.add{display:none !important}
   .wordmark{font-size:30px;margin-bottom:10px}
   .results{grid-template-columns:1fr 1fr;gap:9px}
   .team{break-inside:avoid;border:1px solid #B9BFBA;border-radius:6px}
@@ -334,7 +350,7 @@ body.has-bar .actionbar{display:block}
 <div class="wrap">
   <header class="masthead">
     <h1 class="wordmark">Sides</h1>
-    <p class="tagline">Drop in the names, pick how many teams, draw.</p>
+    <p class="tagline">Random teams from a list — or build them by hand.</p>
     <div class="bibstrip" id="bibstrip" aria-hidden="true"></div>
   </header>
 
@@ -360,6 +376,7 @@ body.has-bar .actionbar{display:block}
   </section>
 
   <button type="button" class="primary" id="draw">Draw the teams</button>
+  <button type="button" class="secondary" id="build">Build my own</button>
   <p class="note" id="note"></p>
 
   <section class="results" id="results" aria-live="polite"></section>
@@ -421,6 +438,7 @@ body.has-bar .actionbar{display:block}
     segmented: document.getElementById("segmented"),
     strip:     document.getElementById("bibstrip"),
     draw:      document.getElementById("draw"),
+    build:     document.getElementById("build"),
     note:      document.getElementById("note"),
     results:   document.getElementById("results"),
     hint:      document.getElementById("hint"),
@@ -560,6 +578,7 @@ body.has-bar .actionbar{display:block}
   }
 
   function drawTeams(){
+    purgeBlanks();
     if (state.people.length < 2) return false;
 
     var previous = signature(state.teams && state.teams.length === state.teamCount ? state.teams : null);
@@ -618,7 +637,7 @@ body.has-bar .actionbar{display:block}
     el.draw.disabled = total < 2;
     el.draw.textContent = state.teams ? "Draw again" : "Draw the teams";
 
-    if (total === 0)      el.note.textContent = "Add some names to get started.";
+    if (total === 0)      el.note.textContent = "Add names above, or build the teams by hand.";
     else if (total === 1) el.note.textContent = "One more person and you can draw.";
     else if (total < n)   el.note.textContent = total + " people over " + n + " teams — some will be empty.";
     else                  el.note.textContent = "";
@@ -645,9 +664,10 @@ body.has-bar .actionbar{display:block}
         var p = personById(id);
         if (!p) return "";
         return '<li><input class="member" type="text" data-id="' + p.id + '" value="' + esc(p.name) +
-               '" spellcheck="false" autocapitalize="words" autocomplete="off" aria-label="Player name"></li>';
+               '" spellcheck="false" autocapitalize="words" autocomplete="off" placeholder="Name" aria-label="Player name"></li>';
       }).join("");
-      if (!rows) rows = '<li class="empty">Nobody here yet</li>';
+      rows += '<li><button type="button" class="add" data-team="' + i + '">' +
+              (team.memberIds.length ? "+ Add someone" : "+ Add the first name") + '</button></li>';
 
       html += '<article class="team' + (animate ? ' deal' : '') + '" data-index="' + i + '"' +
                 ' style="--bib:var(--' + slot.color + ');--bib-ink:var(--' + slot.color + '-ink)' +
@@ -671,7 +691,8 @@ body.has-bar .actionbar{display:block}
 
   function renderRosterText(){
     if (document.activeElement === el.roster) return;
-    el.roster.value = state.people.map(function(p){ return p.name; }).join("\n");
+    el.roster.value = state.people.map(function(p){ return p.name; })
+      .filter(function(n){ return n.trim(); }).join("\n");
     autoGrow();
   }
 
@@ -726,7 +747,71 @@ body.has-bar .actionbar{display:block}
     renderAll(false);
   }
 
+  /* Build my own: start from empty teams and type names straight into them,
+     so a roster is never a prerequisite. Anyone already listed keeps their
+     roster order rather than being shuffled — this path is the manual one. */
+  function buildTeams(){
+    state.teams = Array.from({length: state.teamCount}, function(){ return { memberIds: [] }; });
+    // reconcileTeams drops empty teams when nobody is listed, which is exactly
+    // the state this path wants to start from.
+    if (state.people.length) reconcileTeams();
+    save();
+    renderAll(true);
+  }
+
+  el.build.addEventListener("click", function(){
+    disarmClear();
+    buildTeams();
+    var firstAdd = el.results.querySelector(".add");
+    if (firstAdd && !state.people.length) firstAdd.click();
+    else el.results.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+
+  // Drops rows that were opened but never typed into.
+  function purgeBlanks(){
+    var blank = {};
+    state.people = state.people.filter(function(p){
+      if (p.name.trim()) return true;
+      blank[p.id] = true;
+      return false;
+    });
+    if (state.teams){
+      state.teams.forEach(function(team){
+        team.memberIds = team.memberIds.filter(function(id){ return !blank[id]; });
+      });
+    }
+  }
+
+  function addToTeam(index){
+    purgeBlanks();
+    if (!state.teams || !state.teams[index]) return;
+    var person = { id: uid++, name: "" };
+    state.people.push(person);
+    state.teams[index].memberIds.push(person.id);
+    save();
+    renderResults(false);
+    renderMeta();
+    var input = el.results.querySelector('.member[data-id="' + person.id + '"]');
+    if (input) input.focus();
+  }
+
+  var lastAdd = 0;
+  el.results.addEventListener("pointerdown", function(e){
+    var add = e.target.closest(".add");
+    if (!add) return;
+    // Ahead of the blur that removes an untouched row, so the button can't
+    // shift out from under the finger mid-tap.
+    e.preventDefault();
+    lastAdd = Date.now();
+    addToTeam(Number(add.dataset.team));
+  });
+
   el.results.addEventListener("click", function(e){
+    var add = e.target.closest(".add");
+    if (add) {
+      if (Date.now() - lastAdd > 400) addToTeam(Number(add.dataset.team)); // keyboard activation
+      return;
+    }
     var swatch = e.target.closest(".swatch");
     if (swatch) { setColor(Number(swatch.dataset.team), swatch.dataset.color); return; }
     var toggle = e.target.closest(".bib-btn");
@@ -779,21 +864,38 @@ body.has-bar .actionbar{display:block}
 
   el.results.addEventListener("focusout", function(e){
     var t = e.target;
-    if (!t.classList.contains("member")) return;
+    if (!t.classList.contains("member") || !t.isConnected) return;
     if (t.value.trim()) {
       var p = personById(Number(t.dataset.id));
       if (p && p.name !== p.name.trim()){ p.name = p.name.trim(); t.value = p.name; save(); }
       return;
     }
-    // Cleared name = that person dropped out.
+    // Cleared name = that person dropped out. Removing just this row keeps
+    // focus and taps intact — a full re-render would swallow the next click.
     var id = Number(t.dataset.id);
     state.people = state.people.filter(function(p){ return p.id !== id; });
     state.teams.forEach(function(team){
       team.memberIds = team.memberIds.filter(function(m){ return m !== id; });
     });
-    if (!state.people.length) state.teams = null;
     save();
-    renderAll(false);
+
+    if (!state.people.length){
+      state.teams = null;
+      save();
+      renderAll(false);
+      return;
+    }
+    var card = t.closest(".team");
+    var row = t.closest("li");
+    if (row) row.remove();
+    if (card){
+      var index = Number(card.dataset.index);
+      card.querySelector(".tally").textContent = state.teams[index].memberIds.length;
+      var addButton = card.querySelector(".add");
+      if (addButton && !state.teams[index].memberIds.length) addButton.textContent = "+ Add the first name";
+    }
+    renderRosterText();
+    renderMeta();
   });
 
   el.draw.addEventListener("click", function(){

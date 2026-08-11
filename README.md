@@ -5,6 +5,9 @@ teams, and draw. Don't like the split? Draw again. Give each team the colour of
 the bibs they're actually wearing, fix any name, and save the whole thing as a
 PDF team sheet.
 
+You don't have to start from a list, either — **Build my own** gives you empty
+teams straight away, and you type names into them directly.
+
 The app is one file — `index.html` — with no build step, no dependencies, and no
 network calls. Fonts, logic and the PDF writer are all inlined, so it works
 offline once the page has loaded.
@@ -17,6 +20,11 @@ offline once the page has loaded.
    team will be before you draw.
 3. **Draw the teams.** Everyone is shuffled with `crypto.getRandomValues`, then
    dealt out so team sizes never differ by more than one.
+
+   Or skip steps 1–2 entirely and hit **Build my own**: you get empty teams, and
+   every team has an *+ Add someone* row you type straight into. The roster box
+   fills itself in as you go, so the two routes stay in sync — build by hand
+   first, then hit Draw again to reshuffle the same people if you want.
 4. **Draw again** until you're happy. A redraw never repeats the split you were
    just looking at.
 5. **Set each team's bib colour.** Tap the jersey on a team's header to open the
@@ -34,7 +42,10 @@ A few conveniences worth knowing:
   not two records.
 - Clearing a name entirely drops that person from the draw.
 - Adding a name *after* a draw slots them onto the smallest team, so latecomers
-  don't force a reshuffle.
+  don't force a reshuffle. You can also add them to a specific team with that
+  team's *+ Add someone* row.
+- An add row you open but never type into simply disappears; it is never counted
+  as a person.
 - **Clear all** takes two taps: the first arms it, the second wipes the roster
   and the draw. It deliberately does not use a `confirm()` dialog — browsers
   block modal dialogs inside sandboxed frames and silently return "cancel",
