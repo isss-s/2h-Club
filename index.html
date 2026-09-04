@@ -1238,11 +1238,22 @@ body.has-bar .actionbar{display:block}
     return bytes;
   }
 
-  el.pdf.addEventListener("click", function(){
-    if (!state.teams) return;
+  /* Two save routes. Inside the claude.ai viewer a frame may never download
+     on its own, so the file goes through the downloads capability; everywhere
+     else (GitHub Pages, a local file, any ordinary browser) it is a blob and
+     an anchor. window.claude.use resolves late, so it is asked on demand. */
+  var downloadsPromise = null;
+  function downloadsNamespace(){
+    if (!window.claude || typeof window.claude.use !== "function") return Promise.resolve(null);
+    if (!downloadsPromise){
+      downloadsPromise = window.claude.use("downloads").catch(function(){ return null; });
+    }
+    return downloadsPromise;
+  }
+
+  function saveViaAnchor(blob){
     var url;
     try {
-      var blob = new Blob([buildPdf()], { type: "application/pdf" });
       url = URL.createObjectURL(blob);
       var a = document.createElement("a");
       a.href = url;
@@ -1255,9 +1266,29 @@ body.has-bar .actionbar{display:block}
       setTimeout(function(){ URL.revokeObjectURL(url); }, 8000);
     } catch (e) {
       if (url) URL.revokeObjectURL(url);
-      // Downloads blocked (some embedded frames): fall back to the print dialog.
       try { window.print(); } catch (e2) { flash(el.pdf, "Blocked"); }
     }
+  }
+
+  el.pdf.addEventListener("click", function(){
+    if (!state.teams) return;
+    var blob;
+    try {
+      blob = new Blob([buildPdf()], { type: "application/pdf" });
+    } catch (e) {
+      flash(el.pdf, "Failed");
+      return;
+    }
+    downloadsNamespace().then(function(downloads){
+      if (!downloads) { saveViaAnchor(blob); return; }
+      downloads.save({ filename: "sides-teams.pdf", data: blob }).then(function(){
+        flash(el.pdf, "Saved");
+      }, function(err){
+        var code = err && err.code;
+        flash(el.pdf, code === "declined" ? "Cancelled"
+                    : code === "rate_limited" ? "Try again" : "Unavailable");
+      });
+    });
   });
 
   window.addEventListener("resize", autoGrow);

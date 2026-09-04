@@ -76,8 +76,11 @@ encoded as WinAnsi, which covers Latin alphabets — for scripts beyond that, us
 the browser's own Share → Print, which has its own stylesheet here and renders
 with the embedded fonts.
 
-If a browser blocks the download outright (some embedded frames do), the button
-falls back to the print dialog.
+The button takes whichever save route the page is running in. On GitHub Pages,
+a local file, or any ordinary browser it builds a blob and downloads it; if that
+is blocked it falls back to the print dialog. Inside the claude.ai artifact
+viewer a frame may never download on its own, so the file is handed to the
+viewer through the `downloads` capability and they confirm the save.
 
 ## Opening it on a phone
 
