@@ -31,16 +31,24 @@ offline once the page has loaded.
    picker: red, orange, blue, pink, black, white, green. The strip under the
    title tracks your choices, and text on the band flips between light and dark
    so it stays readable — including on the white and black bibs.
-6. **Edit anything.** Tap a name to correct a typo, or a team's title to rename
-   it. Colours and names both survive a redraw.
-7. **Copy** gives you a plain-text list for a group chat. **PDF** saves a
-   printable team sheet.
+6. **Appoint a captain.** Each player row has a **C** badge — tap it and that
+   player becomes captain. One per team: appointing someone else moves the
+   armband, and tapping the current captain stands them down. The badge fills
+   with the team's bib colour.
+7. **Edit anything.** Tap a name to correct a typo, or a team's title to rename
+   it. Colours, names and captains all survive a redraw.
+8. **Copy** gives you a plain-text list for a group chat, with the captain
+   marked. **PDF** saves a printable team sheet.
 
 A few conveniences worth knowing:
 
 - Correcting a name in a team also corrects it in the roster — it's one person,
   not two records.
-- Clearing a name entirely drops that person from the draw.
+- Clearing a name entirely drops that person from the draw; if they were
+  captain, the team simply has none until you appoint another.
+- Renaming a captain keeps the appointment — it's the same person.
+- A redraw scatters everyone, so a captaincy only carries over if that player
+  happens to stay on the same team. No team can ever end up with two.
 - Adding a name *after* a draw slots them onto the smallest team, so latecomers
   don't force a reshuffle. You can also add them to a specific team with that
   team's *+ Add someone* row.
@@ -50,14 +58,17 @@ A few conveniences worth knowing:
   and the draw. It deliberately does not use a `confirm()` dialog — browsers
   block modal dialogs inside sandboxed frames and silently return "cancel",
   which made the button appear dead when the app was embedded.
-- Your roster, team count, colours and current draw are saved on the device.
+- Your roster, team count, colours, captains and current draw are saved on the
+  device.
 
 ## The PDF
 
 The sheet is written directly as a PDF rather than routed through the browser's
 print dialog, so it comes out the same on every phone and needs no print
 preview. It's A4, uses the base-14 Helvetica faces every reader already has, and
-prints each team's bib colour as a solid band.
+prints each team's bib colour as a solid band. Captains are set in bold with a
+**C** at the right of their row, in the team's colour (grey for the white bib,
+which would otherwise be invisible on paper).
 
 Short draws are laid out as one full-width column; longer ones flow into two
 columns and onto further pages, with continued teams marked `(cont.)`. Names are
@@ -101,8 +112,9 @@ device's setting.
 
 Checked in headless Chromium at an iPhone 13 viewport, in both themes: everyone
 lands on exactly one team, sizes stay balanced within one, redraws never repeat,
-edits sync both ways, colours and names survive redraws and reloads, the layout
-never scrolls sideways, and every tap target clears 36 px.
+edits sync both ways, colours, names and captains survive redraws and reloads,
+no team ever holds two captains, the layout never scrolls sideways, and every
+tap target clears 36 px.
 
 The shuffle was measured over 60,000 draws across three roster shapes. Both who
 you're paired with and which team you land in come out uniform — every
@@ -112,4 +124,5 @@ for pairings at 11 people across 4 teams).
 Clear all is tested inside a frame sandboxed without `allow-modals` — the exact
 condition that broke it — alongside a check that `confirm()` does return false
 there. Generated PDFs are re-parsed with an independent library to confirm the
-xref table resolves and that all names survive column and page breaks.
+xref table resolves, that all names survive column and page breaks, and that
+exactly the captained rows carry the bold face and the C mark.

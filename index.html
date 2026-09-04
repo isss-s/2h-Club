@@ -282,15 +282,28 @@ body.has-bar .primary,body.has-bar .secondary{display:none}
 .swatch[aria-checked="true"] svg{display:block}
 
 .members{list-style:none;margin:0;padding:0}
+.members li{display:flex;align-items:center}
 .members li + li{border-top:1px solid var(--line)}
+.cap{
+  flex:none;width:36px;height:36px;margin:0 8px 0 2px;padding:0;
+  border-radius:50%;cursor:pointer;
+  border:1px solid var(--line-strong);background:transparent;
+  font-family:var(--display);font-weight:800;font-size:18px;line-height:1;
+  color:var(--muted);
+  transition:background .16s,color .16s,border-color .16s;
+}
+.cap:hover{color:var(--ink);border-color:var(--ink)}
+.cap[aria-pressed="true"]{
+  background:var(--bib);color:var(--bib-ink);border-color:transparent;
+}
 .member{
-  width:100%;appearance:none;background:transparent;border:0;
+  flex:1;min-width:0;appearance:none;background:transparent;border:0;
   font-family:var(--body);font-size:16px;color:var(--ink);
   padding:11px 13px;border-radius:0;
 }
 .member:focus{outline:none;background:var(--sunk);box-shadow:inset 3px 0 0 var(--bib)}
 .add{
-  appearance:none;background:transparent;border:0;cursor:pointer;width:100%;
+  appearance:none;background:transparent;border:0;cursor:pointer;flex:1;width:100%;
   text-align:left;padding:12px 13px;
   font-family:var(--body);font-size:15px;font-weight:500;color:var(--muted);
 }
@@ -336,6 +349,11 @@ body.has-bar .actionbar{display:block}
   body.has-bar{padding-bottom:0}
   .card,.actionbar,.primary,.secondary,.note,.hint,.foot,.tagline,.bibstrip,.palette,
   .bib-btn,.add{display:none !important}
+  .cap:not([aria-pressed="true"]){display:none !important}
+  .cap[aria-pressed="true"]{
+    -webkit-print-color-adjust:exact;print-color-adjust:exact;
+    width:20px;height:20px;font-size:12px;margin:0 6px 0 0;
+  }
   .wordmark{font-size:30px;margin-bottom:10px}
   .results{grid-template-columns:1fr 1fr;gap:9px}
   .team{break-inside:avoid;border:1px solid #B9BFBA;border-radius:6px}
@@ -380,7 +398,7 @@ body.has-bar .actionbar{display:block}
   <p class="note" id="note"></p>
 
   <section class="results" id="results" aria-live="polite"></section>
-  <p class="hint" id="hint" hidden>Tap the bib to change a team's colour, or any name to edit it. Clear a name to drop that person.</p>
+  <p class="hint" id="hint" hidden>Tap the bib for a team's colour, C to appoint a captain, or a name to edit it. Clear a name to drop that person.</p>
 
   <p class="foot">Nothing leaves this device</p>
 </div>
@@ -428,7 +446,7 @@ body.has-bar .actionbar{display:block}
   var state = { people: [], teamCount: 2, slots: defaultSlots(), teams: null };
 
   function defaultSlots(){
-    return DEFAULT_COLORS.map(function(c){ return { name: "", color: c }; });
+    return DEFAULT_COLORS.map(function(c){ return { name: "", color: c, captain: null }; });
   }
 
   var el = {
@@ -494,7 +512,8 @@ body.has-bar .actionbar{display:block}
         return {
           name: (saved && typeof saved.name === "string") ? saved.name
               : (legacy && typeof legacy.name === "string") ? legacy.name : "",
-          color: (saved && valid[saved.color]) ? saved.color : slot.color
+          color: (saved && valid[saved.color]) ? saved.color : slot.color,
+          captain: (saved && saved.captain != null) ? Number(saved.captain) : null
         };
       });
 
@@ -556,6 +575,19 @@ body.has-bar .actionbar{display:block}
     }
     return null;
   }
+  function normalizeCaptains(){
+    state.slots.forEach(function(slot, i){
+      if (slot.captain == null) return;
+      var team = state.teams && state.teams[i];
+      if (!team || team.memberIds.indexOf(slot.captain) === -1) slot.captain = null;
+    });
+  }
+
+  function captainOf(i){
+    var slot = state.slots[i];
+    return slot.captain == null ? null : personById(slot.captain);
+  }
+
   function teamTitle(i){
     return (state.slots[i].name || "").trim() || ("Team " + (i + 1));
   }
@@ -644,6 +676,7 @@ body.has-bar .actionbar{display:block}
   }
 
   function renderResults(animate){
+    normalizeCaptains();
     if (!state.teams){
       el.results.innerHTML = "";
       el.hint.hidden = true;
@@ -663,8 +696,13 @@ body.has-bar .actionbar{display:block}
       var rows = team.memberIds.map(function(id){
         var p = personById(id);
         if (!p) return "";
+        var isCaptain = slot.captain === p.id;
+        var who = p.name.trim() || "this player";
         return '<li><input class="member" type="text" data-id="' + p.id + '" value="' + esc(p.name) +
-               '" spellcheck="false" autocapitalize="words" autocomplete="off" placeholder="Name" aria-label="Player name"></li>';
+               '" spellcheck="false" autocapitalize="words" autocomplete="off" placeholder="Name" aria-label="Player name">' +
+               '<button type="button" class="cap" data-team="' + i + '" data-id="' + p.id + '"' +
+               ' aria-pressed="' + isCaptain + '" title="' + (isCaptain ? "Captain" : "Make captain") + '"' +
+               ' aria-label="' + (isCaptain ? esc(who) + " is captain" : "Make " + esc(who) + " captain") + '">C</button></li>';
       }).join("");
       rows += '<li><button type="button" class="add" data-team="' + i + '">' +
               (team.memberIds.length ? "+ Add someone" : "+ Add the first name") + '</button></li>';
@@ -780,6 +818,7 @@ body.has-bar .actionbar{display:block}
         team.memberIds = team.memberIds.filter(function(id){ return !blank[id]; });
       });
     }
+    normalizeCaptains();
   }
 
   function addToTeam(index){
@@ -812,6 +851,8 @@ body.has-bar .actionbar{display:block}
       if (Date.now() - lastAdd > 400) addToTeam(Number(add.dataset.team)); // keyboard activation
       return;
     }
+    var cap = e.target.closest(".cap");
+    if (cap) { toggleCaptain(Number(cap.dataset.team), Number(cap.dataset.id)); return; }
     var swatch = e.target.closest(".swatch");
     if (swatch) { setColor(Number(swatch.dataset.team), swatch.dataset.color); return; }
     var toggle = e.target.closest(".bib-btn");
@@ -831,6 +872,23 @@ body.has-bar .actionbar{display:block}
       card.querySelector(".palette").hidden = false;
       card.querySelector(".bib-btn").setAttribute("aria-expanded", "true");
     }
+  }
+
+  // In place, so appointing a captain never re-renders the row you just tapped.
+  function toggleCaptain(index, personId){
+    var slot = state.slots[index];
+    slot.captain = slot.captain === personId ? null : personId;
+    save();
+    var card = el.results.querySelector('.team[data-index="' + index + '"]');
+    if (!card) return;
+    card.querySelectorAll(".cap").forEach(function(button){
+      var mine = Number(button.dataset.id) === slot.captain;
+      var who = (personById(Number(button.dataset.id)) || {}).name || "";
+      who = who.trim() || "this player";
+      button.setAttribute("aria-pressed", String(mine));
+      button.setAttribute("title", mine ? "Captain" : "Make captain");
+      button.setAttribute("aria-label", mine ? who + " is captain" : "Make " + who + " captain");
+    });
   }
 
   // Applied in place so the results don't re-deal or replay their animation.
@@ -950,7 +1008,8 @@ body.has-bar .actionbar{display:block}
       var head = teamTitle(i) + " (" + team.memberIds.length + ")";
       var body = team.memberIds.map(function(id){
         var p = personById(id);
-        return p ? p.name : "";
+        if (!p) return "";
+        return p.name + (state.slots[i].captain === p.id ? " (captain)" : "");
       }).filter(Boolean).join("\n");
       return body ? head + "\n" + body : head;
     }).join("\n\n");
@@ -1075,7 +1134,7 @@ body.has-bar .actionbar{display:block}
       var title = teamTitle(i);
       var names = team.memberIds.map(function(id){
         var p = personById(id);
-        return p ? p.name : null;
+        return p ? { name: p.name, captain: slot.captain === p.id } : null;
       }).filter(Boolean);
 
       var placed = 0, cont = false;
@@ -1112,9 +1171,18 @@ body.has-bar .actionbar{display:block}
             page.push("0.87 0.89 0.88 RG 0.6 w " + x.toFixed(2) + " " + y.toFixed(2) + " m " +
                       (x + COLW).toFixed(2) + " " + y.toFixed(2) + " l S");
           }
-          page.push("BT /F1 10.5 Tf 0.07 0.09 0.10 rg " + (x + 9).toFixed(2) + " " +
+          var row = names[placed];
+          var face = row.captain ? "/F2" : "/F1";
+          page.push("BT " + face + " 10.5 Tf 0.07 0.09 0.10 rg " + (x + 9).toFixed(2) + " " +
                     (y - 12.5).toFixed(2) + " Td (" +
-                    pdfText(fitText(names[placed], COLW - 18, 10.5, false)) + ") Tj ET");
+                    pdfText(fitText(row.name, COLW - 30, 10.5, row.captain)) + ") Tj ET");
+          if (row.captain){
+            // The white bib's band colour is the paper, so mark in grey there.
+            var mark = slot.color === "white" ? "0.42 0.45 0.44" : band;
+            page.push("BT /F2 9 Tf " + mark + " rg " +
+                      (x + COLW - 9 - textWidth("C", 9, true)).toFixed(2) + " " +
+                      (y - 12.5).toFixed(2) + " Td (C) Tj ET");
+          }
           y -= ROWH;
           placed++;
         }
